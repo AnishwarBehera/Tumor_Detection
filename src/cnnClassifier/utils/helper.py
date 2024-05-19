@@ -123,3 +123,17 @@ def encodeImageIntoBase64(croppedImagePath):
     
 def save_model(path: Path, model: tf.keras.Model):
         model.save(path)
+
+
+
+def load_model(path: Path) -> tf.keras.Model:
+    return tf.keras.models.load_model(path)
+
+# def save_score(score):
+#         scores = {"loss":score[0], "accuracy":score[1]}
+#         save_json(path=Path("artifact/Score/scores.json"), data=scores)
+def save_score(score):
+    scores = {"loss": score[0], "accuracy": score[1]}
+    save_path = Path("artifact/Score/scores.json")
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+    save_json(path=save_path, data=scores)
