@@ -3,13 +3,14 @@ from box.exceptions import BoxValueError
 from box import Box
 import tensorflow as tf
 import yaml
-from cnnClassifier.logger import logging
+from cnnClassifier.logger import logger
 import json
 import joblib
 from box import ConfigBox
 from pathlib import Path
 from typing import Any
 import base64
+import shutil
 
 
 
@@ -20,7 +21,7 @@ def read_yaml(path_to_yaml: Path) -> Box:
             content = yaml.safe_load(yaml_file)
             if not content:
                 raise ValueError(f"The YAML file at {path_to_yaml} is empty.")
-            logging.info(f"yaml file: {path_to_yaml} loaded successfully")
+            logger.info(f"yaml file: {path_to_yaml} loaded successfully")
             return Box(content)
     except BoxValueError:
         raise ValueError("yaml file is empty")
@@ -39,7 +40,7 @@ def create_directories(path_to_directories: list, verbose=True):
     for path in path_to_directories:
         os.makedirs(path, exist_ok=True)
         if verbose:
-            logging.info(f"created directory at: {path}")
+            logger.info(f"created directory at: {path}")
 
 
 def save_json(path: Path, data: dict):
@@ -52,7 +53,7 @@ def save_json(path: Path, data: dict):
     with open(path, "w") as f:
         json.dump(data, f, indent=4)
 
-    logging.info(f"json file saved at: {path}")
+    logger.info(f"json file saved at: {path}")
 
 
 
@@ -69,7 +70,7 @@ def load_json(path: Path) -> ConfigBox:
     with open(path) as f:
         content = json.load(f)
 
-    logging.info(f"json file loaded succesfully from: {path}")
+    logger.info(f"json file loaded succesfully from: {path}")
     return ConfigBox(content)
 
 
@@ -81,7 +82,7 @@ def save_bin(data: Any, path: Path):
         path (Path): path to binary file
     """
     joblib.dump(value=data, filename=path)
-    logging.info(f"binary file saved at: {path}")
+    logger.info(f"binary file saved at: {path}")
 
 
 def load_bin(path: Path) -> Any:
@@ -94,7 +95,7 @@ def load_bin(path: Path) -> Any:
         Any: object stored in the file
     """
     data = joblib.load(path)
-    logging.info(f"binary file loaded from: {path}")
+    logger.info(f"binary file loaded from: {path}")
     return data
 
 def get_size(path: Path) -> str:
@@ -129,11 +130,45 @@ def save_model(path: Path, model: tf.keras.Model):
 def load_model(path: Path) -> tf.keras.Model:
     return tf.keras.models.load_model(path)
 
-# def save_score(score):
-#         scores = {"loss":score[0], "accuracy":score[1]}
-#         save_json(path=Path("artifact/Score/scores.json"), data=scores)
+
+
+
+
 def save_score(score):
-    scores = {"loss": score[0], "accuracy": score[1]}
-    save_path = Path("artifact/Score/scores.json")
+    loss, accuracy, precision, recall = score
+
+    if precision + recall > 0:  
+        f1 = 2 * (precision * recall) / (precision + recall)
+    else:
+        f1 = 0.0
+
+    # Save all scores
+    scores = {
+        "loss": loss,
+        "accuracy": accuracy,
+        "precision": precision,
+        "recall": recall,
+        "f1_score": f1
+    }
+    
+    save_path = Path("artifact/score/scores.json")
     save_path.parent.mkdir(parents=True, exist_ok=True)
-    save_json(path=save_path, data=scores)
+    
+    with open(save_path, "w") as f:
+        json.dump(scores, f, indent=4)
+
+    print("Scores saved successfully:", scores)
+
+# def copy_model(source_path:Path,dest_path:Path):
+
+    
+#     if not os.path.exists(source_path):
+#         logger.info(f"The source file does not exist at {source_path}")
+
+#     os.makedirs(dest_path,exist_ok=True)
+
+#     shutil.copy2(source_path,dest_path)
+
+#     logger.info(f"Model is sucessifully saved at {dest_path}")
+
+

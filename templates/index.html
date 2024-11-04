@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tumor Detection System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #2a2e45, #394361);
+            color: #f0f0f0;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            padding: 40px;
+            background-color: #363b58;
+            border-radius: 15px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            text-align: center;
+        }
+
+
+        h1 {
+            color: #ffffff;
+            font-size: 2.5rem;
+            margin: 0;
+            padding: 20px 40px;
+            background: linear-gradient(90deg, #00897b, #00796b);
+            border-radius: 10px;
+            display: inline-block;
+            margin-bottom: 30px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        /* Sample Image Styling */
+        .sample-section {
+            margin-bottom: 2rem;
+        }
+
+        .sample-section h2 {
+            font-size: 1.5rem;
+            color: #26c6da;
+            margin-bottom: 1rem;
+            text-decoration: underline;
+        }
+
+        .image-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .sample-image {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 100px;
+        }
+
+        .sample-image img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            margin-bottom: 15px;
+        }
+
+        .download-link {
+            font-size: 0.9rem;
+            color: #26c6da;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .download-link:hover {
+            text-decoration: underline;
+        }
+
+        .upload-section {
+            margin-top: 30px;
+            margin-bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #00796b;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 15px;
+            transition: background 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .file-input-label:hover {
+            background-color: #00574b;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        button {
+            padding: 12px 24px;
+            background-color: #ef5350;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 15px;
+            transition: background 0.3s;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        button:hover {
+            background-color: #d32f2f;
+        }
+
+        /* Loading Spinner and Prediction Result */
+        #loadingSpinner {
+            display: none;
+            margin-top: 15px;
+            font-size: 1.2rem;
+            color: #26c6da;
+            font-weight: bold;
+        }
+
+        #predictionResult {
+            margin-top: 15px;
+            font-size: 1.2rem;
+            color: #f0f0f0;
+            font-weight: bold;
+        }
+
+        #uploadedImage {
+            display: none;
+            margin-top: 20px;
+            width: 120px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Kidney Tumor Detection System</h1>
+
+        <div class="sample-section">
+            <h2>Tumor Sample Images</h2>
+            <div class="image-row">
+                {% for image in tumor_images %}
+                <div class="sample-image">
+                    <img src="{{ url_for('sample_images', category=tumor_path, filename=image) }}" alt="Tumor Image">
+                    <a href="{{ url_for('sample_images', category=tumor_path, filename=image) }}" download="{{ image }}" class="download-link">Download</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="sample-section">
+            <h2>Normal Sample Images</h2>
+            <div class="image-row">
+                {% for image in normal_images %}
+                <div class="sample-image">
+                    <img src="{{ url_for('sample_images', category=normal_path, filename=image) }}" alt="Normal Image">
+                    <a href="{{ url_for('sample_images', category=normal_path, filename=image) }}" download="{{ image }}" class="download-link">Download</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="upload-section">
+            <label for="fileInput" class="file-input-label">Upload CT Scan Image</label>
+            <input type="file" id="fileInput">
+            <button id="predictButton">Predict</button>
+
+            <div id="loadingSpinner">Loading...</div>
+            <div id="predictionResult"></div>
+            <img id="uploadedImage" src="#" alt="Uploaded CT Scan Image">
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const fileInput = document.getElementById('fileInput');
+            const predictButton = document.getElementById('predictButton');
+            const uploadedImage = document.getElementById('uploadedImage');
+            const predictionResult = document.getElementById('predictionResult');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+
+            fileInput.addEventListener('change', function () {
+                const file = fileInput.files[0];
+                if (file) {
+                    uploadedImage.src = URL.createObjectURL(file);
+                    uploadedImage.style.display = 'block';
+                }
+            });
+
+            predictButton.addEventListener('click', function () {
+                const file = fileInput.files[0];
+                if (!file) {
+                    alert("Please upload an image before predicting.");
+                    return;
+                }
+
+                loadingSpinner.style.display = 'block';
+                predictionResult.textContent = '';
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    return response.json();
+                })
+                .then(data => {
+                    loadingSpinner.style.display = 'none';
+
+                    if (data.prediction) {
+                        predictionResult.textContent = `Prediction: ${data.prediction}`;
+                    } else if (data.error) {
+                        predictionResult.textContent = `Error: ${data.error}`;
+                    } else {
+                        predictionResult.textContent = 'Unexpected response from server.';
+                    }
+                })
+                .catch(error => {
+                    loadingSpinner.style.display = 'none';
+                    predictionResult.textContent = 'Error occurred. Please try again.';
+                    console.error('Error:', error);
+                });
+            });
+        });
+    </script>
+</body>
+</html>

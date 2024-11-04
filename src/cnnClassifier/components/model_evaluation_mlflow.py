@@ -1,10 +1,12 @@
 import tensorflow as tf
 from cnnClassifier.entity.config_entity import EvaluationConfig
 from cnnClassifier.config.configuration import ConfigurationManager
-from cnnClassifier.utils.helper import load_model,save_score
+from cnnClassifier.utils.helper import load_model,save_score,save_json
 import mlflow
 import mlflow.keras
 from urllib.parse import urlparse
+import keras
+from pathlib import Path
 
 
 
@@ -42,6 +44,7 @@ class Evaluation:
         self.score= self.model.evaluate(self.valid_generator)
         save_score(self.score)
 
+
     def log_into_mlflow(self):
         mlflow.set_registry_uri(self.config.mlflow_uri)
         tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
@@ -51,13 +54,10 @@ class Evaluation:
             mlflow.log_metrics(
                 {"loss": self.score[0], "accuracy": self.score[1]}
             )
-            # Model registry does not work with file store
             if tracking_url_type_store != "file":
-
-                # Register the model
-                # There are other ways to use the Model Registry, which depends on the use case,
-                # please refer to the doc for more information:
-                # https://mlflow.org/docs/latest/model-registry.html#api-workflow
                 mlflow.keras.log_model(self.model, "model", registered_model_name="VGG16Model")
             else:
                 mlflow.keras.log_model(self.model, "model")
+    
+
+

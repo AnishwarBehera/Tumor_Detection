@@ -1,13 +1,14 @@
-from cnnClassifier.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH
+from cnnClassifier.constants import CONFIG_FILE_PATH, PARAMS_FILE_PATH, MLFLOW_SECRETS_PATH
 from cnnClassifier.utils.helper import read_yaml, create_directories
 from cnnClassifier.entity.config_entity import DataIngestionConfig,PrepareBaseModelConfig,TrainingConfig,EvaluationConfig
 from pathlib import Path
 import os
 
 class ConfigurationManager:
-    def __init__(self, config_filepath=Path(CONFIG_FILE_PATH), params_filepath=Path(PARAMS_FILE_PATH)):
+    def __init__(self, config_filepath=Path(CONFIG_FILE_PATH), params_filepath=Path(PARAMS_FILE_PATH),mlflow_secrets=Path(MLFLOW_SECRETS_PATH)):
         self.config = read_yaml(config_filepath)
         self.params = read_yaml(params_filepath)
+        self.mlflow=read_yaml(mlflow_secrets)
         create_directories([self.config.artifact_root])
 
     def get_data_ingestion_config(self) -> DataIngestionConfig:
@@ -70,7 +71,7 @@ class ConfigurationManager:
         eval_config = EvaluationConfig(
             path_to_model="artifact/training/model.h5",
             training_data="artifact/data_ingestion/kidney-ct-scan-image",
-            mlflow_uri="https://dagshub.com/AnishwarBehera/Kidney_tumor_detection.mlflow",
+            mlflow_uri=self.mlflow.MLFLOW_TRACKING_URI,
             all_params=self.params,
             params_image_size=self.params.IMAGE_SIZE,
             params_batch_size=self.params.BATCH_SIZE
