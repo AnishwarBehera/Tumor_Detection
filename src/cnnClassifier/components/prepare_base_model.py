@@ -5,7 +5,6 @@ from cnnClassifier.entity.config_entity import PrepareBaseModelConfig
 from cnnClassifier.utils.helper import save_model
 from tensorflow.keras.metrics import Precision, Recall
 
-
 class PrepareBaseModel:
     def __init__(self, config: PrepareBaseModelConfig):
         self.config = config
@@ -19,7 +18,7 @@ class PrepareBaseModel:
         save_model(path=self.config.base_model_path, model=self.model)
     
     @staticmethod
-    def prepare_full_model(model, classes, freeze_all, freeze_till, learning_rate, dropout_rate=0.6):
+    def prepare_full_model(model, classes, freeze_all, freeze_till, learning_rate, dropout_rate=0.5):
         if freeze_all:
             for layer in model.layers:
                 layer.trainable = False
@@ -28,30 +27,19 @@ class PrepareBaseModel:
                 layer.trainable = False
 
         flatten_in = tf.keras.layers.Flatten()(model.output)
-        
-
-        dense_layer = tf.keras.layers.Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01))(flatten_in)
+        dense_layer = tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.01))(flatten_in)
         batch_norm_layer = tf.keras.layers.BatchNormalization()(dense_layer)
         dropout_layer = tf.keras.layers.Dropout(dropout_rate)(batch_norm_layer)
 
-        
-        
-        prediction = tf.keras.layers.Dense(
-            units=classes,
-            activation="softmax"
-        )(dropout_layer)
+        prediction = tf.keras.layers.Dense(units=classes, activation="softmax")(dropout_layer)
 
-        full_model = tf.keras.models.Model(
-            inputs=model.input,
-            outputs=prediction
-        )
+        full_model = tf.keras.models.Model(inputs=model.input, outputs=prediction)
 
         full_model.compile(
-            optimizer=tf.keras.optimizers.legacy.Adam(learning_rate=learning_rate),
-            loss=tf.keras.losses.BinaryCrossentropy(),
+            optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate),
+            loss=tf.keras.losses.CategoricalCrossentropy(),
             metrics=["accuracy", Precision(name="precision"), Recall(name="recall")]
         )
-
 
         full_model.summary()
         print(full_model.summary())
@@ -60,13 +48,12 @@ class PrepareBaseModel:
     def update_base_model(self):
         self.full_model = self.prepare_full_model(
             model=self.model,
-            classes=self.config.params_classes,
+            classes=self.config.params_classes,  
             freeze_all=True,
-            freeze_till=None,
-            # freeze_till=10,
+            # freeze_till=None,
+            freeze_till=10,
             learning_rate=self.config.params_learning_rate,
-            dropout_rate=0.6
+            dropout_rate=0.5
         )
 
         save_model(path=self.config.updated_base_model_path, model=self.full_model)
-

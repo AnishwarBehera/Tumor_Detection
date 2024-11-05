@@ -164,5 +164,4 @@ logs/
 dist/
 research/
 mlflow.yaml
-prepare_base_model/
 artifact/data.zip
